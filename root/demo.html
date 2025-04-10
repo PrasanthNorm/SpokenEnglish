@@ -122,8 +122,18 @@
   <script>
     document.getElementById("demoForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      alert("Thank you for booking a demo class! We will contact you shortly to confirm your slot.");
-      window.location.href = "index.html";
+      // Set demo completion flag
+      sessionStorage.setItem('demoCompleted', 'true');
+      const formContainer = document.querySelector('.demo-form-container');
+      formContainer.innerHTML = `
+        <div class="text-center">
+          <h2 class="text-success mb-4">Demo Class Booked Successfully!</h2>
+          <p class="mb-4">Thank you for booking a demo class! We will contact you shortly to confirm your slot.</p>
+          <p class="mb-4">Ready to start your journey? Proceed to payment to secure your spot in our program.</p>
+          <a href="payment.html" class="btn btn-primary btn-lg">Proceed to Payment</a>
+          <a href="index.html" class="btn btn-outline-secondary btn-lg ms-2">Back to Home</a>
+        </div>
+      `; 
     });
   </script>
 </body>
