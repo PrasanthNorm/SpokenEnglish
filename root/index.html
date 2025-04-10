@@ -12,7 +12,8 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container"> 
+       
     <div class="form-container">
       <div class="form-title">Spoken English Registration</div>
       <form id="registrationForm">
@@ -28,48 +29,51 @@
           <label class="form-label">Year Of Birth (పుట్టిన సంవత్సరం)</label>
           <input type="number" class="form-control" id="yearOfBirth" required>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Gender (లింగం)</label>
-          <select class="form-select" id="gender" required>
-            <option value="">Select</option>
-            <option>Male (పురుషుడు)</option>
-            <option>Female (స్త్రీ)</option>
-            <option>Other (ఇతర)</option>
-          </select>
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container text-center">
+      <h2 class="mb-4">Fresh Batch Starting from 15th April</h2>
+      <p class="lead mb-4">Choose your preferred timing:</p>
+      <div class="row justify-content-center mb-4">
+        <div class="col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <h3>Morning</h3>
+              <p class="mb-0">7:00 AM</p>
+            </div>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Place (స్థలం)</label>
-          <input type="text" class="form-control" id="place" required>
+        <div class="col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <h3>Evening</h3>
+              <p class="mb-0">8:00 PM</p>
+            </div>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Occupation or Student (ఉద్యోగం లేదా విద్యార్థి)</label>
-          <select class="form-select" id="occupation" required>
-            <option value="">Select</option>
-            <option>Student (విద్యార్థి)</option>
-            <option>Private Employee (ప్రైవేట్ ఉద్యోగి)</option>
-            <option>Government Employee (ప్రభుత్వ ఉద్యోగి)</option>
-            <option>Housewife (గృహిణి)</option>
-            <option>Business (వ్యాపారం)</option>
-          </select>
+      </div>
+      <div class="row justify-content-center">
+        <div class="col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <h4>Individual</h4>
+              <p class="h3 mb-0">₹700/-</p>
+            </div>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Religion (మతం)</label>
-          <select class="form-select" id="religion" required>
-            <option value="">Select</option>
-            <option>Hindu (హిందూ)</option>
-            <option>Muslim (ముస్లిం)</option>
-            <option>Christian (క్రిస్టియన్)</option>
-            <option>Other (ఇతర)</option>
-          </select>
+        <div class="col-md-3">
+          <div class="card">
+            <div class="card-body">
+              <h4>Pair</h4>
+              <p class="h3 mb-0">₹1000/-</p>
+            </div>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">How do you know about us? (మీకు ఈ సమాచారం ఎలా తెలుసు?)</label>
-          <input type="text" class="form-control" id="source" required>
-        </div>
-        <button type="submit" class="btn btn-primary w-100">Save & Proceed to Payment</button>
-      </form>
+      </div>
+      <p class="mt-3"><small>* Fee concession available for Poor students</small></p>
+      <a href="demo.html" class="btn btn-primary btn-lg mt-4">Book Your Free Demo Now</a>
     </div>
-  </div>
+  </section>
 
   <script>
     const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
