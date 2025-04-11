@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - Bible-Based Spoken English</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     .navbar-custom {
       background-color: #1a4ba7;
@@ -91,7 +90,8 @@
   </div>
 
   <script type="module">
-    import { supabase } from './js/supabase-config.js';
+    import { db } from './js/firebase-config.js';
+    import { collection, query, where, getDocs, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
     // Toggle between login and signup forms
     let isLoginForm = true;
@@ -143,47 +143,70 @@
     }
 
     // Handle form submission
-    document.addEventListener('submit', async (e) => {
+    async function handleAuth(e) {
       e.preventDefault();
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
       try {
-        let result;
         if (isLoginForm) {
-          result = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
+          // Login - Check if user exists with matching credentials
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('email', '==', email));
+          const querySnapshot = await getDocs(q);
+
+          if (querySnapshot.empty) {
+            throw new Error('User not found');
+          }
+
+          const userDoc = querySnapshot.docs[0];
+          const userData = userDoc.data();
+
+          if (userData.password !== password) {
+            throw new Error('Invalid password');
+          }
+
+          // Store user session
+          sessionStorage.setItem('userId', userDoc.id);
+          sessionStorage.setItem('userEmail', email);
+
+          // Redirect to profile page
+          window.location.href = 'profile.html';
         } else {
+          // Sign up
           const confirmPassword = document.getElementById('confirmPassword').value;
           if (password !== confirmPassword) {
             throw new Error('Passwords do not match');
           }
-          result = await supabase.auth.signUp({
+
+          // Check if user already exists
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('email', '==', email));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            throw new Error('User already exists');
+          }
+
+          // Create new user document
+          const userId = Date.now().toString();
+          await setDoc(doc(db, 'users', userId), {
             email,
             password,
-            options: {
-              emailRedirectTo: window.location.origin + '/profile.html'
-            }
+            createdAt: new Date().toISOString()
           });
 
-          if (result.data?.user && !result.error) {
-            alert('Please check your email for the confirmation link.');
-            return;
-          }
-        }
+          // Store user session
+          sessionStorage.setItem('userId', userId);
+          sessionStorage.setItem('userEmail', email);
 
-        if (result.error) throw result.error;
-
-        // Only redirect on successful login
-        if (isLoginForm && result.data?.user) {
+          // Redirect to profile page
           window.location.href = 'profile.html';
         }
       } catch (error) {
         alert(error.message);
       }
-    });
+    }
 
     // Initialize the form
     renderAuthForm();
