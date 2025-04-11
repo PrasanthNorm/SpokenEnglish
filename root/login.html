@@ -188,6 +188,10 @@
         if (isLoginForm) {
           // Login
           user = await signIn(email, password);
+          // Store user session data
+          sessionStorage.setItem('userId', user.uid);
+          sessionStorage.setItem('userEmail', user.email);
+          window.location.href = 'profile.html';
         } else {
           // Sign up
           const confirmPassword = document.getElementById('confirmPassword').value;
@@ -198,6 +202,10 @@
             throw new Error('Password must be at least 6 characters long');
           }
           user = await signUp(email, password);
+          // Store user session data after successful signup
+          sessionStorage.setItem('userId', user.uid);
+          sessionStorage.setItem('userEmail', user.email);
+          window.location.href = 'profile.html';
         }
 
         // Store user session

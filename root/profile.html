@@ -157,26 +157,22 @@
       }
     }
 
-    // Check if user is authenticated
+    // Check if user is authenticated using session storage
     function checkAuth() {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
+      const userId = sessionStorage.getItem('userId');
+      const userEmail = sessionStorage.getItem('userEmail');
+      if (!userId || !userEmail) {
         window.location.href = 'login.html';
         return null;
       }
-      return { id: currentUser.uid, email: currentUser.email };
+      return { id: userId, email: userEmail };
     }
 
     // Handle logout
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      try {
-        await logOut();
-        sessionStorage.clear();
-        window.location.href = 'login.html';
-      } catch (error) {
-        console.error('Logout error:', error);
-        alert('Error logging out. Please try again.');
-      }
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      sessionStorage.removeItem('userId');
+      sessionStorage.removeItem('userEmail');
+      window.location.href = 'login.html';
     });
 
     async function initProfile() {
