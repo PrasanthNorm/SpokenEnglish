@@ -98,8 +98,64 @@
   </div>
 
   <script type="module">
-    import { auth, db, logOut } from './js/firebase-config.js';
-    import { collection, query, where, getDocs, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import { db } from './js/firebase-config.js';
+    import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    // Show/hide auth-related nav items
+    function updateNavigation() {
+      const userId = sessionStorage.getItem('userId');
+      const subscriptionLink = document.getElementById('subscriptionLink');
+      const profileLink = document.getElementById('profileLink');
+      const logoutLink = document.getElementById('logoutLink');
+
+      if (userId) {
+        subscriptionLink.style.display = 'block';
+        profileLink.style.display = 'block';
+        logoutLink.style.display = 'block';
+      } else {
+        subscriptionLink.style.display = 'none';
+        profileLink.style.display = 'none';
+        logoutLink.style.display = 'none';
+      }
+    }
+
+    // Handle logout
+    document.getElementById('logoutLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      sessionStorage.removeItem('userId');
+      sessionStorage.removeItem('userEmail');
+      window.location.href = 'index.html';
+    });
+
+    // Get subscription status
+    async function getSubscriptionStatus(userId) {
+      try {
+        const subscriptionDoc = await getDoc(doc(db, 'subscriptions', userId));
+        if (subscriptionDoc.exists()) {
+          const data = subscriptionDoc.data();
+          return `
+            <div class="subscription-status mb-4">
+              <h3>Subscription Details</h3>
+              <p><strong>Plan:</strong> ${data.planType} Plan</p>
+              <p><strong>Price:</strong> $${data.price}/month</p>
+              <p><strong>Status:</strong> ${data.status}</p>
+              <p><strong>Start Date:</strong> ${new Date(data.startDate).toLocaleDateString()}</p>
+              <a href="subscription.html" class="btn btn-primary">Manage Subscription</a>
+            </div>
+          `;
+        }
+        return `
+          <div class="subscription-status mb-4">
+            <h3>No Active Subscription</h3>
+            <p>You don't have an active subscription plan.</p>
+            <a href="subscription.html" class="btn btn-primary">Choose a Plan</a>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error fetching subscription:', error);
+        return '<p>Error loading subscription details</p>';
+      }
+    }
 
     // Check if user is authenticated
     function checkAuth() {
