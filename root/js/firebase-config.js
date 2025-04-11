@@ -1,5 +1,6 @@
 // Import Firebase SDK
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, setDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Firebase configuration
@@ -15,7 +16,41 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Authentication functions
+const signUp = async (email, password) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    await setDoc(doc(db, 'users', user.uid), {
+      email,
+      createdAt: new Date().toISOString()
+    });
+    return user;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+const signIn = async (email, password) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+const logOut = async () => {
+  try {
+    await signOut(auth);
+    return true;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
 
 // Helper function to get user data from Firestore
 const getUserData = async (userId) => {
@@ -30,4 +65,4 @@ const getUserData = async (userId) => {
 };
 
 // Export the functions and Firebase instances
-export { db, getUserData };
+export { auth, db, signUp, signIn, logOut, getUserData };

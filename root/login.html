@@ -149,60 +149,28 @@
       const password = document.getElementById('password').value;
 
       try {
+        let user;
         if (isLoginForm) {
-          // Login - Check if user exists with matching credentials
-          const usersRef = collection(db, 'users');
-          const q = query(usersRef, where('email', '==', email));
-          const querySnapshot = await getDocs(q);
-
-          if (querySnapshot.empty) {
-            throw new Error('User not found');
-          }
-
-          const userDoc = querySnapshot.docs[0];
-          const userData = userDoc.data();
-
-          if (userData.password !== password) {
-            throw new Error('Invalid password');
-          }
-
-          // Store user session
-          sessionStorage.setItem('userId', userDoc.id);
-          sessionStorage.setItem('userEmail', email);
-
-          // Redirect to profile page
-          window.location.href = 'profile.html';
+          // Login
+          user = await signIn(email, password);
         } else {
           // Sign up
           const confirmPassword = document.getElementById('confirmPassword').value;
           if (password !== confirmPassword) {
             throw new Error('Passwords do not match');
           }
-
-          // Check if user already exists
-          const usersRef = collection(db, 'users');
-          const q = query(usersRef, where('email', '==', email));
-          const querySnapshot = await getDocs(q);
-
-          if (!querySnapshot.empty) {
-            throw new Error('User already exists');
+          if (password.length < 6) {
+            throw new Error('Password must be at least 6 characters long');
           }
-
-          // Create new user document
-          const userId = Date.now().toString();
-          await setDoc(doc(db, 'users', userId), {
-            email,
-            password,
-            createdAt: new Date().toISOString()
-          });
-
-          // Store user session
-          sessionStorage.setItem('userId', userId);
-          sessionStorage.setItem('userEmail', email);
-
-          // Redirect to profile page
-          window.location.href = 'profile.html';
+          user = await signUp(email, password);
         }
+
+        // Store user session
+        sessionStorage.setItem('userId', user.uid);
+        sessionStorage.setItem('userEmail', user.email);
+
+        // Redirect to profile page
+        window.location.href = 'profile.html';
       } catch (error) {
         alert(error.message);
       }
