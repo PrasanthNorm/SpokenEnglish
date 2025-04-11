@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Bible-Based Spoken English</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .navbar-custom {
+      background-color: #1a4ba7;
+      padding: 1rem;
+    }
+    .navbar-custom .navbar-brand,
+    .navbar-custom .nav-link {
+      color: white;
+    }
+    .navbar-custom .nav-link:hover {
+      color: #ffd700;
+    }
+    .auth-container {
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 30px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    .auth-title {
+      color: #1a4ba7;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    .auth-toggle {
+      text-align: center;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-custom">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">Bible-Based Spoken English</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="courses.html">Courses</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="demo.html">Book Demo</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="faq.html">FAQ</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="contact.html">Contact</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Auth Form Container -->
+  <div class="container">
+    <div class="auth-container">
+      <div id="authForm">
+        <h2 class="auth-title">Login</h2>
+        <form id="loginForm" class="mb-3">
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+        <div class="auth-toggle">
+          <p>Don't have an account? <a href="#" id="toggleSignup">Sign Up</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './js/supabase-config.js';
+
+    // Toggle between login and signup forms
+    let isLoginForm = true;
+    const authForm = document.getElementById('authForm');
+    const toggleSignup = document.getElementById('toggleSignup');
+
+    toggleSignup.addEventListener('click', (e) => {
+      e.preventDefault();
+      isLoginForm = !isLoginForm;
+      renderAuthForm();
+    });
+
+    function renderAuthForm() {
+      const title = isLoginForm ? 'Login' : 'Sign Up';
+      const toggleText = isLoginForm ? "Don't have an account? Sign Up" : 'Already have an account? Login';
+      
+      authForm.innerHTML = `
+        <h2 class="auth-title">${title}</h2>
+        <form id="${isLoginForm ? 'loginForm' : 'signupForm'}" class="mb-3">
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" required>
+          </div>
+          ${!isLoginForm ? `
+          <div class="mb-3">
+            <label class="form-label">Confirm Password</label>
+            <input type="password" class="form-control" id="confirmPassword" required>
+          </div>` : ''}
+          <button type="submit" class="btn btn-primary w-100">${title}</button>
+        </form>
+        <div class="auth-toggle">
+          <p>${toggleText.split('?')[0]}? <a href="#" id="toggleSignup">${toggleText.split('?')[1].trim()}</a></p>
+        </div>
+      `;
+
+      // Reattach event listeners
+      document.getElementById('toggleSignup').addEventListener('click', (e) => {
+        e.preventDefault();
+        isLoginForm = !isLoginForm;
+        renderAuthForm();
+      });
+
+      const form = document.querySelector('form');
+      form.addEventListener('submit', handleAuth);
+    }
+
+    // Handle form submission
+    document.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        let result;
+        if (isLoginForm) {
+          result = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+        } else {
+          const confirmPassword = document.getElementById('confirmPassword').value;
+          if (password !== confirmPassword) {
+            throw new Error('Passwords do not match');
+          }
+          result = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: window.location.origin + '/profile.html'
+            }
+          });
+
+          if (result.data?.user && !result.error) {
+            alert('Please check your email for the confirmation link.');
+            return;
+          }
+        }
+
+        if (result.error) throw result.error;
+
+        // Only redirect on successful login
+        if (isLoginForm && result.data?.user) {
+          window.location.href = 'profile.html';
+        }
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    // Initialize the form
+    renderAuthForm();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
