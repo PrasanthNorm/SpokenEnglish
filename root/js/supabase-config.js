@@ -1,9 +1,12 @@
+// Import Supabase client
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 // Supabase configuration
 const supabaseUrl = 'https://bbhbdtgnmyrfkgfmmztf.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiaGJkdGdubXlyZmtnZm1tenRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4MzQ0OTYsImV4cCI6MjA1OTQxMDQ5Nn0.f2pdGUiMIDm1ccjjFf-7xoY00fdysaMgilZih-JGmKU';
 
 // Initialize Supabase client
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Helper functions for auth state
 const getCurrentUser = async () => {
