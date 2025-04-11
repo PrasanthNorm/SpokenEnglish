@@ -99,62 +99,125 @@
 
   <script type="module">
     import { db } from './js/firebase-config.js';
-    import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import { doc, getDoc, collection, query, where, getDocs, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    // Enable offline persistence
+    enableIndexedDbPersistence(db).catch((err) => {
+      console.warn('Offline persistence could not be enabled:', err);
+    });
+
+    // Retry function for Firestore operations
+    async function retryOperation(operation, maxAttempts = 3, delay = 1000) {
+      let lastError;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          return await operation();
+        } catch (error) {
+          lastError = error;
+          console.warn(`Attempt ${attempt} failed:`, error);
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, delay * attempt));
+          }
+        }
+      }
+      throw lastError;
+    }
 
     // Show/hide auth-related nav items
     function updateNavigation() {
       const userId = sessionStorage.getItem('userId');
-      const subscriptionLink = document.getElementById('subscriptionLink');
-      const profileLink = document.getElementById('profileLink');
-      const logoutLink = document.getElementById('logoutLink');
-
-      if (userId) {
-        subscriptionLink.style.display = 'block';
-        profileLink.style.display = 'block';
-        logoutLink.style.display = 'block';
-      } else {
-        subscriptionLink.style.display = 'none';
-        profileLink.style.display = 'none';
-        logoutLink.style.display = 'none';
+      if (!userId) {
+        window.location.href = 'login.html';
+        return;
       }
     }
 
     // Handle logout
-    document.getElementById('logoutLink').addEventListener('click', (e) => {
-      e.preventDefault();
+    document.getElementById('logoutBtn').addEventListener('click', () => {
       sessionStorage.removeItem('userId');
       sessionStorage.removeItem('userEmail');
-      window.location.href = 'index.html';
+      window.location.href = 'login.html';
     });
 
-    // Get subscription status
-    async function getSubscriptionStatus(userId) {
+    async function loadUserCourses(userId) {
       try {
-        const subscriptionDoc = await getDoc(doc(db, 'subscriptions', userId));
-        if (subscriptionDoc.exists()) {
-          const data = subscriptionDoc.data();
-          return `
-            <div class="subscription-status mb-4">
-              <h3>Subscription Details</h3>
-              <p><strong>Plan:</strong> ${data.planType} Plan</p>
-              <p><strong>Price:</strong> $${data.price}/month</p>
-              <p><strong>Status:</strong> ${data.status}</p>
-              <p><strong>Start Date:</strong> ${new Date(data.startDate).toLocaleDateString()}</p>
-              <a href="subscription.html" class="btn btn-primary">Manage Subscription</a>
+        await retryOperation(async () => {
+          const coursesRef = collection(db, 'user_courses');
+          const q = query(coursesRef, where('user_id', '==', userId));
+          const querySnapshot = await getDocs(q);
+
+          const courses = [];
+          querySnapshot.forEach((doc) => {
+            courses.push(doc.data());
+          });
+
+          const coursesList = document.getElementById('coursesList');
+          if (courses.length === 0) {
+            coursesList.innerHTML = '<p>No courses enrolled yet.</p>';
+            return;
+          }
+
+          coursesList.innerHTML = courses.map(course => `
+            <div class="course-card">
+              <h4>${course.course_name}</h4>
+              <div class="progress mb-3">
+                <div class="progress-bar" role="progressbar" style="width: ${course.progress}%"
+                  aria-valuenow="${course.progress}" aria-valuemin="0" aria-valuemax="100">
+                  ${course.progress}%
+                </div>
+              </div>
+              <p>Status: ${course.status}</p>
             </div>
-          `;
-        }
-        return `
-          <div class="subscription-status mb-4">
-            <h3>No Active Subscription</h3>
-            <p>You don't have an active subscription plan.</p>
-            <a href="subscription.html" class="btn btn-primary">Choose a Plan</a>
-          </div>
-        `;
+          `).join('');
+        });
       } catch (error) {
-        console.error('Error fetching subscription:', error);
-        return '<p>Error loading subscription details</p>';
+        console.error('Error loading courses after retries:', error.message);
+        document.getElementById('coursesList').innerHTML = 
+          '<div class="alert alert-danger">Failed to load courses. Please refresh the page to try again.</div>';
       }
+    }
+
+    async function loadDemoStatus(userId) {
+      try {
+        await retryOperation(async () => {
+          const demoRef = doc(db, 'demo_bookings', userId);
+          const demoDoc = await getDoc(demoRef);
+
+          const demoStatus = document.getElementById('demoStatus');
+          if (!demoDoc.exists()) {
+            demoStatus.innerHTML = '<p>No demo class booked yet.</p>';
+            return;
+          }
+
+          const demo = demoDoc.data();
+          demoStatus.innerHTML = `
+            <p><strong>Time Slot:</strong> ${demo.time_slot}</p>
+            <p><strong>Status:</strong> ${demo.status}</p>
+            <p><strong>Booked On:</strong> ${new Date(demo.created_at).toLocaleDateString()}</p>
+          `;
+        });
+      } catch (error) {
+        console.error('Error loading demo status after retries:', error.message);
+        document.getElementById('demoStatus').innerHTML = 
+          '<div class="alert alert-danger">Failed to load demo status. Please refresh the page to try again.</div>';
+      }
+    }
+
+    async function initProfile() {
+      const user = checkAuth();
+      if (!user) return;
+
+      // Display user info
+      document.getElementById('userName').textContent = user.email.split('@')[0];
+      document.getElementById('userEmail').textContent = user.email;
+
+      // Load user's courses and progress
+      await Promise.all([
+        loadUserCourses(user.id),
+        loadDemoStatus(user.id)
+      ]).catch(error => {
+        console.error('Error initializing profile:', error);
+      });
     }
 
     // Check if user is authenticated using session storage
@@ -167,91 +230,6 @@
       }
       return { id: userId, email: userEmail };
     }
-
-    // Handle logout
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      sessionStorage.removeItem('userId');
-      sessionStorage.removeItem('userEmail');
-      window.location.href = 'login.html';
-    });
-
-    async function initProfile() {
-      const user = checkAuth();
-      if (!user) return;
-
-      // Display user info
-      document.getElementById('userName').textContent = user.email.split('@')[0];
-      document.getElementById('userEmail').textContent = user.email;
-
-      // Load user's courses and progress
-      loadUserCourses(user.id);
-      loadDemoStatus(user.id);
-    }
-
-    async function loadUserCourses(userId) {
-      try {
-        const coursesRef = collection(db, 'user_courses');
-        const q = query(coursesRef, where('user_id', '==', userId));
-        const querySnapshot = await getDocs(q);
-
-        const courses = [];
-        querySnapshot.forEach((doc) => {
-          courses.push(doc.data());
-        });
-
-        const coursesList = document.getElementById('coursesList');
-        if (courses.length === 0) {
-          coursesList.innerHTML = '<p>No courses enrolled yet.</p>';
-          return;
-        }
-
-        coursesList.innerHTML = courses.map(course => `
-          <div class="course-card">
-            <h4>${course.course_name}</h4>
-            <div class="progress mb-3">
-              <div class="progress-bar" role="progressbar" style="width: ${course.progress}%"
-                aria-valuenow="${course.progress}" aria-valuemin="0" aria-valuemax="100">
-                ${course.progress}%
-              </div>
-            </div>
-            <p>Status: ${course.status}</p>
-          </div>
-        `).join('');
-      } catch (error) {
-        console.error('Error loading courses:', error.message);
-      }
-    }
-
-    async function loadDemoStatus(userId) {
-      try {
-        const demoRef = doc(db, 'demo_bookings', userId);
-        const demoDoc = await getDoc(demoRef);
-
-        const demoStatus = document.getElementById('demoStatus');
-        if (!demoDoc.exists()) {
-          demoStatus.innerHTML = '<p>No demo class booked yet.</p>';
-          return;
-        }
-
-        const demo = demoDoc.data();
-
-        demoStatus.innerHTML = `
-          <p><strong>Time Slot:</strong> ${demo.time_slot}</p>
-          <p><strong>Status:</strong> ${demo.status}</p>
-          <p><strong>Booked On:</strong> ${new Date(demo.created_at).toLocaleDateString()}</p>
-        `;
-      } catch (error) {
-        console.error('Error loading demo status:', error.message);
-      }
-    }
-
-    // Handle logout
-    document.getElementById('logoutBtn').addEventListener('click', (e) => {
-      e.preventDefault();
-      sessionStorage.removeItem('userId');
-      sessionStorage.removeItem('userEmail');
-      window.location.href = 'login.html';
-    });
 
     // Initialize profile page
     initProfile();
